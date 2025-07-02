@@ -44,7 +44,7 @@ resource "aws_instance" "blog" {
 
 module "alb" {
   source  = "terraform-aws-modules/alb/aws"
-  version = "9.17.0"
+  version = "~> 9.0"
 
   name    = "blog-alb"
   vpc_id  = module.blog_vpc.vpc_id
@@ -59,12 +59,11 @@ module "alb" {
       backend_port     = 80
       target_type      = "instance"
       
-      # Health check settings
+      # Health check configuration
       health_check = {
         enabled             = true
         interval            = 30
         path                = "/"
-        port                = "traffic-port"
         healthy_threshold   = 3
         unhealthy_threshold = 3
         timeout             = 6
@@ -74,28 +73,29 @@ module "alb" {
     }
   }
 
-  # Listener configuration with proper default_action
-  listeners = {
-    http-80 = {
-      port     = 80
-      protocol = "HTTP"
+  # HTTP Listener with proper default_action
+  http_tcp_listeners = [
+    {
+      port               = 80
+      protocol           = "HTTP"
+      target_group_index = 0
       default_action = {
         type             = "forward"
-        target_group_key = "blog-tg"
+        target_group_arn = module.alb.target_groups["blog-tg"].arn
       }
     }
-  }
+  ]
 
   tags = {
     Environment = "dev"
   }
 }
 
-# Target group attachment - simplified version
+# Target group attachment - direct attachment method
 resource "aws_lb_target_group_attachment" "blog" {
-  target_group_arn  = module.alb.target_groups["blog-tg"].arn
-  target_id         = aws_instance.blog.id
-  port              = 80
+  target_group_arn = module.alb.target_groups["blog-tg"].arn
+  target_id        = aws_instance.blog.id
+  port             = 80
 }
 
 module "blog_sg" {
