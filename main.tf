@@ -51,17 +51,32 @@ module "alb" {
   subnets = module.blog_vpc.public_subnets
   security_groups = [module.blog_sg.security_group_id]
 
+  # Target group configuration
   target_groups = {
     blog-tg = {
       name_prefix      = "blog-"
       backend_protocol = "HTTP"
       backend_port     = 80
       target_type      = "instance"
+      
+      # Health check settings
+      health_check = {
+        enabled             = true
+        interval            = 30
+        path                = "/"
+        port                = "traffic-port"
+        healthy_threshold   = 3
+        unhealthy_threshold = 3
+        timeout             = 6
+        protocol            = "HTTP"
+        matcher             = "200-399"
+      }
     }
   }
 
+  # Listener configuration with proper default_action
   listeners = {
-    http = {
+    http-80 = {
       port     = 80
       protocol = "HTTP"
       default_action = {
@@ -76,10 +91,11 @@ module "alb" {
   }
 }
 
+# Target group attachment - simplified version
 resource "aws_lb_target_group_attachment" "blog" {
-  target_group_arn = module.alb.target_groups["blog-tg"].arn
-  target_id        = aws_instance.blog.id
-  port             = 80
+  target_group_arn  = module.alb.target_groups["blog-tg"].arn
+  target_id         = aws_instance.blog.id
+  port              = 80
 }
 
 module "blog_sg" {
