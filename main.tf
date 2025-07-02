@@ -51,14 +51,14 @@ module "alb" {
   subnets = module.blog_vpc.public_subnets
   security_groups = [module.blog_sg.security_group_id]
 
-  target_groups = [
-    {
+  target_groups = {  # Note: This is now a map, not a list
+    blog-tg = {
       name_prefix      = "blog-"
       backend_protocol = "HTTP"
       backend_port     = 80
       target_type      = "instance"
-      }
-  ]
+    }
+  }
 
    listeners = {
     http = {
@@ -66,7 +66,7 @@ module "alb" {
       protocol = "HTTP"
       default_action = {
         type             = "forward"
-        target_group_index = 0
+        target_group_key = "blog-tg
       }
     }
   }
