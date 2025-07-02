@@ -91,13 +91,6 @@ module "blog_alb" {
   }
 }
 
-# Target group attachment
-resource "aws_lb_target_group_attachment" "blog" {
-  target_group_arn = module.alb.target_group_arns[0]
-  target_id        = aws_instance.blog.id
-  port             = 80
-}
-
 module "blog_sg" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "5.3.0"
