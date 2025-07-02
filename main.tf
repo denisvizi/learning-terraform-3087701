@@ -51,7 +51,7 @@ module "alb" {
   subnets = module.blog_vpc.public_subnets
   security_groups = [module.blog_sg.security_group_id]
 
-  # Target group configuration
+  # Target group configuration - as a map
   target_groups = {
     blog-tg = {
       name_prefix      = "blog-"
@@ -73,25 +73,26 @@ module "alb" {
     }
   }
 
-  # HTTP Listener with proper default_action
-  http_tcp_listeners = [
-    {
-      port               = 80
-      protocol           = "HTTP"
-      target_group_index = 0
+  # Listener configuration - using the correct format
+  listeners = {
+    http = {
+      port            = 80
+      protocol        = "HTTP"
+      
+      # Default action is required
       default_action = {
         type             = "forward"
-        target_group_arn = module.alb.target_groups["blog-tg"].arn
+        target_group_key = "blog-tg"
       }
     }
-  ]
+  }
 
   tags = {
     Environment = "dev"
   }
 }
 
-# Target group attachment - direct attachment method
+# Target group attachment
 resource "aws_lb_target_group_attachment" "blog" {
   target_group_arn = module.alb.target_groups["blog-tg"].arn
   target_id        = aws_instance.blog.id
