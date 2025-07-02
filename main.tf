@@ -44,16 +44,16 @@ resource "aws_instance" "blog" {
 
 module "alb" {
   source  = "terraform-aws-modules/alb/aws"
-  version = "~> 9.0"
+  version = "~> 8.0"  # Use version 8.x which has a more stable interface
 
   name    = "blog-alb"
   vpc_id  = module.blog_vpc.vpc_id
   subnets = module.blog_vpc.public_subnets
   security_groups = [module.blog_sg.security_group_id]
 
-  # Target group configuration - as a map
-  target_groups = {
-    blog-tg = {
+  # Target group configuration - using list format for version 8.x
+  target_groups = [
+    {
       name_prefix      = "blog-"
       backend_protocol = "HTTP"
       backend_port     = 80
@@ -71,21 +71,16 @@ module "alb" {
         matcher             = "200-399"
       }
     }
-  }
+  ]
 
-  # Listener configuration - using the correct format
-  listeners = {
-    http = {
-      port            = 80
-      protocol        = "HTTP"
-      
-      # Default action is required
-      default_action = {
-        type             = "forward"
-        target_group_key = "blog-tg"
-      }
+  # Listener configuration - using list format for version 8.x
+  http_tcp_listeners = [
+    {
+      port               = 80
+      protocol           = "HTTP"
+      target_group_index = 0
     }
-  }
+  ]
 
   tags = {
     Environment = "dev"
@@ -94,7 +89,7 @@ module "alb" {
 
 # Target group attachment
 resource "aws_lb_target_group_attachment" "blog" {
-  target_group_arn = module.alb.target_groups["blog-tg"].arn
+  target_group_arn = module.alb.target_group_arns[0]
   target_id        = aws_instance.blog.id
   port             = 80
 }
