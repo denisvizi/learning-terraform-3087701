@@ -39,8 +39,7 @@ module "autoscaling" {
   max_size = 2
 
   vpc_zone_identifier = module.blog_vpc.public_subnets
-  target_group_arns   = module.blog_alb.target_group_arns
-  security_groups      = [module.blog_sg.security_group_id]
+  security_groups     = [module.blog_sg.security_group_id]  # Removed target_group_arns
   
   image_id      = data.aws_ami.app_ami.id
   instance_type = var.instance_type
@@ -55,37 +54,11 @@ module "blog_alb" {
   subnets = module.blog_vpc.public_subnets
   security_groups = [module.blog_sg.security_group_id]
 
-  # Target group configuration - using list format for version 8.x
-  target_groups = [
-    {
-      name_prefix      = "blog-"
-      backend_protocol = "HTTP"
-      backend_port     = 80
-      target_type      = "instance"
-      
-      # Health check configuration
-      health_check = {
-        enabled             = true
-        interval            = 30
-        path                = "/"
-        healthy_threshold   = 3
-        unhealthy_threshold = 3
-        timeout             = 6
-        protocol            = "HTTP"
-        matcher             = "200-399"
-      }
-    }
-  ]
-
-  # Listener configuration - using list format for version 8.x
-  http_tcp_listeners = [
-    {
-      port               = 80
-      protocol           = "HTTP"
-      target_group_index = 0
-    }
-  ]
-
+resource "aws_autoscaling_attachment" "blog" {
+  autoscaling_group_name = module.autoscaling.autoscaling_group_name  # Use ASG name
+  lb_target_group_arn    = module.blog_alb.target_group_arns[0]      # Attach first target group
+}
+ 
   tags = {
     Environment = "dev"
   }
