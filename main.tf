@@ -21,7 +21,7 @@ module "blog_vpc" {
   name = var.environment.name
   cidr = "${var.environment.network_prefix}.0.0/16"
 
-  azs             = ["us-west-2a","us-west-2b","us-west-2c"]
+  azs             = ["eu-central-1a","eu-central-1b","eu-central-1c"]
   public_subnets  = ["${var.environment.network_prefix}.101.0/24", "${var.environment.network_prefix}.102.0/24", "${var.environment.network_prefix}.103.0/24"]
 
 
@@ -34,31 +34,35 @@ module "blog_vpc" {
 
 module "blog_autoscaling" {
   source  = "terraform-aws-modules/autoscaling/aws"
-  #version = "6.5.2"
-  version = "7.0.0"  # Upgraded to version compatible with AWS provider ≥4.0
+  version = "6.5.2"
+  
 
-  name = "blog"
+  #name = "blog"
+  name = "${var.environment.name}-blog"
 
   min_size            = var.asg_min
   max_size            = var.asg_max
   vpc_zone_identifier = module.blog_vpc.public_subnets
   target_group_arns   = module.blog_alb.target_group_arns
   security_groups     = [module.blog_sg.security_group_id]
-  #instance_type       = var.instance_type
-  #image_id            = data.aws_ami.app_ami.id
 
-  # Remove deprecated GPU-related parameters
-  #elastic_gpu_specifications    = null
-  #elastic_inference_accelerator = null
+  # Launch template configuration
+  launch_template_name = "blog-launch-template"
+  launch_template_version = "$Latest"
+  
+  image_id      = data.aws_ami.app_ami.id
+  instance_type = var.instance_type
 
-    # Launch template configuration
-  launch_template = {
-    name            = "blog-launch-template"
-    image_id        = data.aws_ami.app_ami.id
-    instance_type   = var.instance_type
-    security_groups = [module.blog_sg.security_group_id]
+  # Instance configuration
+  instance_market_options = {
+    market_type = "spot"
   }
+
+  # Disable the problematic GPU parameters
+  elastic_gpu_specifications = []
+  elastic_inference_accelerator = []
 }
+
 
 #module "blog_alb" {
 #  source  = "terraform-aws-modules/alb/aws"
