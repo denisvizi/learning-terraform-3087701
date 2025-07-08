@@ -38,11 +38,8 @@ module "blog_autoscaling" {
   min_size = var.asg_min
   max_size = var.asg_max
   vpc_zone_identifier = module.blog_vpc.public_subnets
-
-  # Target group configuration
   target_group_arns = module.blog_alb.target_group_arns
 
-  # Launch template configuration
   launch_template = {
     name_prefix   = "blog-"
     image_id      = data.aws_ami.app_ami.id
