@@ -38,31 +38,40 @@ module "blog_autoscaling" {
   min_size            = var.asg_min
   max_size            = var.asg_max
   vpc_zone_identifier = module.blog_vpc.public_subnets
-  target_group_arns   = module.blog_alb.target_group_arns
+  
+  # Target group attachment (correct syntax for v9.0.1)
+  target_group_arns = module.blog_alb.target_group_arns
+
+  # Launch template configuration (correct syntax for v9.0.1)
+  launch_template = {
+    name            = "blog-launch-template"
+    version         = "$Latest"
+    image_id        = data.aws_ami.app_ami.id
+    instance_type   = var.instance_type
     
-  # Launch template configuration
-  launch_template_name        = "blog-launch-template"
-  launch_template_version     = "$Latest"
-
-  image_id                    = data.aws_ami.app_ami.id
-  instance_type               = var.instance_type
-  vpc_security_group_ids     = [module.blog_sg.security_group_id]
-
-      # Spot instance configuration
-    instance_market_options = {
-      market_type = "spot"
+    # Security groups must be specified in the network_interfaces block
+    network_interfaces = {
+      associate_public_ip_address = true
+      security_groups            = [module.blog_sg.security_group_id]
     }
 
-    # Required parameters
-    ebs_optimized = true
+    # Spot instance configuration
+    instance_market_options = {
+      market_type = "spot"
+      spot_options = {
+        max_price = null # Use on-demand price
+      }
+    }
+
+    # Monitoring configuration (correct syntax)
     monitoring = {
       enabled = true
     }
-    
-    # Explicitly disable GPU parameters
-    elastic_gpu_specifications = []
-    elastic_inference_accelerator = []
   }
+
+  # Required parameters at the module level
+  ebs_optimized = true
+}
 
 module "blog_alb" {
   source  = "terraform-aws-modules/alb/aws"
