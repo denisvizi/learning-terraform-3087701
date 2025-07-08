@@ -45,6 +45,10 @@ module "blog_autoscaling" {
   security_groups     = [module.blog_sg.security_group_id]
   instance_type       = var.instance_type
   image_id            = data.aws_ami.app_ami.id
+
+  # Remove deprecated GPU-related parameters
+  elastic_gpu_specifications    = null
+  elastic_inference_accelerator = null
 }
 
 module "blog_alb" {
