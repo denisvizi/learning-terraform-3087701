@@ -53,8 +53,8 @@ module "blog_autoscaling" {
   }
 
   # Disable GPU parameters (set as empty blocks)
-  elastic_gpu_specifications = []
-  elastic_inference_accelerator = []
+  elastic_gpu_specifications = null
+  elastic_inference_accelerator = null
 }
 
 module "blog_alb" {
