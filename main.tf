@@ -35,41 +35,35 @@ module "blog_autoscaling" {
 
   name = "${var.environment.name}-blog"
 
-  min_size            = var.asg_min
-  max_size            = var.asg_max
+  min_size = var.asg_min
+  max_size = var.asg_max
   vpc_zone_identifier = module.blog_vpc.public_subnets
   
-  # Target group attachment (correct syntax for v9.0.1)
-  target_group_arns = module.blog_alb.target_group_arns
+  # Correct target group attachment for v9.0.1
+  create_attachment = true
+  load_balancer_target_groups = module.blog_alb.target_group_arns
 
-  # Launch template configuration (correct syntax for v9.0.1)
-  launch_template = {
-    name            = "blog-launch-template"
-    version         = "$Latest"
-    image_id        = data.aws_ami.app_ami.id
-    instance_type   = var.instance_type
+  # Correct launch template configuration for v9.0.1
+  use_launch_template = true
+  launch_template_config = {
+    name_prefix   = "blog-"
+    image_id      = data.aws_ami.app_ami.id
+    instance_type = var.instance_type
     
-    # Security groups must be specified in the network_interfaces block
-    network_interfaces = {
-      associate_public_ip_address = true
-      security_groups            = [module.blog_sg.security_group_id]
-    }
+    network_interfaces = [{
+      delete_on_termination = true
+      security_groups       = [module.blog_sg.security_group_id]
+    }]
 
-    # Spot instance configuration
     instance_market_options = {
       market_type = "spot"
-      spot_options = {
-        max_price = null # Use on-demand price
-      }
     }
 
-    # Monitoring configuration (correct syntax)
     monitoring = {
       enabled = true
     }
   }
 
-  # Required parameters at the module level
   ebs_optimized = true
 }
 
