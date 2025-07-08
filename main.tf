@@ -38,7 +38,7 @@ module "blog_autoscaling" {
   min_size            = var.asg_min
   max_size            = var.asg_max
   vpc_zone_identifier = module.blog_vpc.public_subnets
-  target_group_arns   = module.blog_alb.target_group_arns
+  #target_group_arns   = module.blog_alb.target_group_arns
   security_groups     = [module.blog_sg.security_group_id]
   
   # Launch template configuration
@@ -47,9 +47,17 @@ module "blog_autoscaling" {
   image_id                    = data.aws_ami.app_ami.id
   instance_type               = var.instance_type
 
-  # Instance configuration
+  # Target group attachment (new in version 9.x)
+  attach_load_balancer_target_groups = true
+  load_balancer_target_group_arns    = module.blog_alb.target_group_arns
+
+
+  # Updated instance market options for spot instances
   instance_market_options = {
     market_type = "spot"
+    spot_options = {
+      max_price = null # Use on-demand price
+    }
   }
 }
 
