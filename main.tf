@@ -14,7 +14,6 @@ data "aws_ami" "app_ami" {
   owners = [var.ami_filter.owner] # Bitnami
 }
 
-
 module "blog_vpc" {
   source = "terraform-aws-modules/vpc/aws"
 
@@ -24,20 +23,16 @@ module "blog_vpc" {
   azs             = ["eu-central-1a","eu-central-1b","eu-central-1c"]
   public_subnets  = ["${var.environment.network_prefix}.101.0/24", "${var.environment.network_prefix}.102.0/24", "${var.environment.network_prefix}.103.0/24"]
 
-
   tags = {
     Terraform = "true"
     Environment = var.environment.name
   }
 }
 
-
 module "blog_autoscaling" {
   source  = "terraform-aws-modules/autoscaling/aws"
   version = "6.5.2"
-  
 
-  #name = "blog"
   name = "${var.environment.name}-blog"
 
   min_size            = var.asg_min
@@ -45,65 +40,28 @@ module "blog_autoscaling" {
   vpc_zone_identifier = module.blog_vpc.public_subnets
   target_group_arns   = module.blog_alb.target_group_arns
   security_groups     = [module.blog_sg.security_group_id]
-
-  # Launch template configuration
-  launch_template_name = "blog-launch-template"
-  launch_template_version = "$Latest"
   
-  image_id      = data.aws_ami.app_ami.id
-  instance_type = var.instance_type
+  # Launch template configuration
+  launch_template_name        = "blog-launch-template"
+  launch_template_version     = "$Latest"
+  image_id                    = data.aws_ami.app_ami.id
+  instance_type               = var.instance_type
 
   # Instance configuration
   instance_market_options = {
     market_type = "spot"
   }
 
-  # Disable the problematic GPU parameters
+  # Disable GPU parameters (set as empty blocks)
   elastic_gpu_specifications = []
   elastic_inference_accelerator = []
 }
-
-
-#module "blog_alb" {
-#  source  = "terraform-aws-modules/alb/aws"
-#  version = "~> 6.0"
-#
-#  name = "blog-alb"
-#
-#  load_balancer_type = "application"
-#
-#  vpc_id             = module.blog_vpc.vpc_id
-#  subnets            = module.blog_vpc.public_subnets
-#  security_groups    = [module.blog_sg.security_group_id]
-#
-#  target_groups = [
-#    {
-#      name_prefix      = "blog-"
-#      backend_protocol = "HTTP"
-#      backend_port     = 80
-#      target_type      = "instance"
-#      protocol_version = "HTTP1"  # Required parameter for ALB v6.x
-#    }
-#  ]
-#
-#  http_tcp_listeners = [
-#    {
-#      port               = 80
-#      protocol           = "HTTP"
-#      target_group_index = 0
-#    }
-#  ]
-#
-#  tags = {
-#    Environment = "dev"
-#  }
-#}
 
 module "blog_alb" {
   source  = "terraform-aws-modules/alb/aws"
   version = "~> 6.0"
 
-  name = "blog-alb"
+  name = "${var.environment.name}-blog-alb"
   load_balancer_type = "application"
   vpc_id             = module.blog_vpc.vpc_id
   subnets            = module.blog_vpc.public_subnets
@@ -115,7 +73,7 @@ module "blog_alb" {
       backend_protocol = "HTTP"
       backend_port     = 80
       target_type      = "instance"
-      protocol_version = "HTTP1"  # Required parameter
+      protocol_version = "HTTP1"
     }
   ]
 
@@ -128,7 +86,7 @@ module "blog_alb" {
   ]
 
   tags = {
-    Environment = "dev"
+    Environment = var.environment.name
   }
 }
 
@@ -137,9 +95,11 @@ module "blog_sg" {
   version = "4.13.0"
 
   vpc_id  = module.blog_vpc.vpc_id
-  name    = "blog"
-  ingress_rules = ["https-443-tcp","http-80-tcp"]
+  name    = "${var.environment.name}-blog-sg"
+  
+  ingress_rules = ["https-443-tcp", "http-80-tcp"]
   ingress_cidr_blocks = ["0.0.0.0/0"]
+  
   egress_rules = ["all-all"]
   egress_cidr_blocks = ["0.0.0.0/0"]
 }
