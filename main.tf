@@ -69,6 +69,7 @@ module "blog_alb" {
       backend_protocol = "HTTP"
       backend_port     = 80
       target_type      = "instance"
+      protocol_version = "HTTP1"  # Required parameter for ALB v6.x
     }
   ]
 
