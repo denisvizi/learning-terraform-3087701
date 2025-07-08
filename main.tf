@@ -31,35 +31,38 @@ module "blog_vpc" {
 
 module "blog_autoscaling" {
   source  = "terraform-aws-modules/autoscaling/aws"
-  version = "8.3.1"
+  version = "9.0.1"
 
   name = "${var.environment.name}-blog"
 
   min_size            = var.asg_min
   max_size            = var.asg_max
   vpc_zone_identifier = module.blog_vpc.public_subnets
-  #target_group_arns   = module.blog_alb.target_group_arns
-  security_groups     = [module.blog_sg.security_group_id]
-  
+  target_group_arns   = module.blog_alb.target_group_arns
+    
   # Launch template configuration
   launch_template_name        = "blog-launch-template"
   launch_template_version     = "$Latest"
+
   image_id                    = data.aws_ami.app_ami.id
   instance_type               = var.instance_type
+  vpc_security_group_ids     = [module.blog_sg.security_group_id]
 
-  # Target group attachment (new in version 9.x)
-  attach_load_balancer_target_groups = true
-  load_balancer_target_group_arns    = module.blog_alb.target_group_arns
-
-
-  # Updated instance market options for spot instances
-  instance_market_options = {
-    market_type = "spot"
-    spot_options = {
-      max_price = null # Use on-demand price
+      # Spot instance configuration
+    instance_market_options = {
+      market_type = "spot"
     }
+
+    # Required parameters
+    ebs_optimized = true
+    monitoring = {
+      enabled = true
+    }
+    
+    # Explicitly disable GPU parameters
+    elastic_gpu_specifications = []
+    elastic_inference_accelerator = []
   }
-}
 
 module "blog_alb" {
   source  = "terraform-aws-modules/alb/aws"
