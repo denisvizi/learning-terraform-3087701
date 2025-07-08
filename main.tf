@@ -51,10 +51,6 @@ module "blog_autoscaling" {
   instance_market_options = {
     market_type = "spot"
   }
-
-  # Disable GPU parameters (set as empty blocks)
-  #elastic_gpu_specifications = null
-  #elastic_inference_accelerator = null
 }
 
 module "blog_alb" {
