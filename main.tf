@@ -34,7 +34,8 @@ module "blog_vpc" {
 
 module "blog_autoscaling" {
   source  = "terraform-aws-modules/autoscaling/aws"
-  version = "6.5.2"
+  #version = "6.5.2"
+  version = "7.0.0"  # Upgraded to version compatible with AWS provider ≥4.0
 
   name = "blog"
 
@@ -43,22 +44,63 @@ module "blog_autoscaling" {
   vpc_zone_identifier = module.blog_vpc.public_subnets
   target_group_arns   = module.blog_alb.target_group_arns
   security_groups     = [module.blog_sg.security_group_id]
-  instance_type       = var.instance_type
-  image_id            = data.aws_ami.app_ami.id
+  #instance_type       = var.instance_type
+  #image_id            = data.aws_ami.app_ami.id
 
   # Remove deprecated GPU-related parameters
-  elastic_gpu_specifications    = null
-  elastic_inference_accelerator = null
+  #elastic_gpu_specifications    = null
+  #elastic_inference_accelerator = null
+
+    # Launch template configuration
+  launch_template = {
+    name            = "blog-launch-template"
+    image_id        = data.aws_ami.app_ami.id
+    instance_type   = var.instance_type
+    security_groups = [module.blog_sg.security_group_id]
+  }
 }
+
+#module "blog_alb" {
+#  source  = "terraform-aws-modules/alb/aws"
+#  version = "~> 6.0"
+#
+#  name = "blog-alb"
+#
+#  load_balancer_type = "application"
+#
+#  vpc_id             = module.blog_vpc.vpc_id
+#  subnets            = module.blog_vpc.public_subnets
+#  security_groups    = [module.blog_sg.security_group_id]
+#
+#  target_groups = [
+#    {
+#      name_prefix      = "blog-"
+#      backend_protocol = "HTTP"
+#      backend_port     = 80
+#      target_type      = "instance"
+#      protocol_version = "HTTP1"  # Required parameter for ALB v6.x
+#    }
+#  ]
+#
+#  http_tcp_listeners = [
+#    {
+#      port               = 80
+#      protocol           = "HTTP"
+#      target_group_index = 0
+#    }
+#  ]
+#
+#  tags = {
+#    Environment = "dev"
+#  }
+#}
 
 module "blog_alb" {
   source  = "terraform-aws-modules/alb/aws"
   version = "~> 6.0"
 
   name = "blog-alb"
-
   load_balancer_type = "application"
-
   vpc_id             = module.blog_vpc.vpc_id
   subnets            = module.blog_vpc.public_subnets
   security_groups    = [module.blog_sg.security_group_id]
@@ -69,7 +111,7 @@ module "blog_alb" {
       backend_protocol = "HTTP"
       backend_port     = 80
       target_type      = "instance"
-      protocol_version = "HTTP1"  # Required parameter for ALB v6.x
+      protocol_version = "HTTP1"  # Required parameter
     }
   ]
 
