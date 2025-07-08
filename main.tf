@@ -38,33 +38,41 @@ module "blog_autoscaling" {
   min_size = var.asg_min
   max_size = var.asg_max
   vpc_zone_identifier = module.blog_vpc.public_subnets
-  
-  # Correct target group attachment for v9.0.1
-  create_attachment = true
-  load_balancer_target_groups = module.blog_alb.target_group_arns
 
-  # Correct launch template configuration for v9.0.1
-  use_launch_template = true
-  launch_template_config = {
+  # Target group configuration
+  target_group_arns = module.blog_alb.target_group_arns
+
+  # Launch template configuration
+  launch_template = {
     name_prefix   = "blog-"
     image_id      = data.aws_ami.app_ami.id
     instance_type = var.instance_type
+    key_name      = null
     
     network_interfaces = [{
       delete_on_termination = true
       security_groups       = [module.blog_sg.security_group_id]
+      associate_public_ip_address = true
     }]
 
     instance_market_options = {
       market_type = "spot"
+      spot_options = {
+        max_price = null
+      }
     }
 
     monitoring = {
       enabled = true
     }
-  }
 
-  ebs_optimized = true
+    tag_specifications = [{
+      resource_type = "instance"
+      tags = {
+        Name = "${var.environment.name}-blog-instance"
+      }
+    }]
+  }
 }
 
 module "blog_alb" {
