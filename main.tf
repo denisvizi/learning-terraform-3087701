@@ -38,17 +38,19 @@ module "blog_autoscaling" {
   min_size = var.asg_min
   max_size = var.asg_max
   vpc_zone_identifier = module.blog_vpc.public_subnets
-  target_group_arns = module.blog_alb.target_group_arns
+
+  create_traffic_source_attachment = true
+  traffic_source_identifier        = module.blog_alb.target_group_arns[0]
+  traffic_source_type              = "elbv2"
 
   launch_template = {
     name_prefix   = "blog-"
     image_id      = data.aws_ami.app_ami.id
     instance_type = var.instance_type
-    key_name      = null
     
     network_interfaces = [{
-      delete_on_termination = true
-      security_groups       = [module.blog_sg.security_group_id]
+      delete_on_termination       = true
+      security_groups             = [module.blog_sg.security_group_id]
       associate_public_ip_address = true
     }]
 
